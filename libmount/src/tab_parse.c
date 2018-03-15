@@ -247,7 +247,7 @@ static int mnt_parse_mountinfo_line(struct libmnt_fs *fs, char *s)
 		fs->opt_fields = strndup(s + 1, p - s - 1);
 	s = p + 3;
 
-   if((fstype = strtok_r(NULL, delims, &ptr))) {
+   if((fstype = strtok_r(s, delims, &ptr))) {
 	 rc++;
 	 fstype = strdup(fstype);
 
