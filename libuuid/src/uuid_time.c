@@ -100,7 +100,7 @@ int uuid_variant(const uuid_t uu)
 	return UUID_VARIANT_OTHER;
 }
 
-#ifdef DEBUG
+#if 0
 static const char *variant_string(int variant)
 {
 	switch (variant) {
@@ -114,7 +114,6 @@ static const char *variant_string(int variant)
 		return "Other";
 	}
 }
-
 
 int
 main(int argc, char **argv)

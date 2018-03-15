@@ -70,25 +70,25 @@ static int mnt_parse_table_line(struct libmnt_fs *fs, char *s)
 {
 	 int rc = 0, n = 0, xrc;
 
-	 char *p = NULL, *src = NULL, *fstype = NULL, *optstr = NULL, *nstr = NULL;
+	 char *ptr = NULL, *src = NULL, *fstype = NULL, *optstr = NULL, *nstr = NULL;
 
-	 if((src = strtok_r(s, delims, &p))) {
+	 if((src = strtok_r(s, delims, &ptr))) {
 	   src = strdup(src);
 	   rc++;
 
-	   if((fs->target = strtok_r(NULL, delims, &p))) {
+	   if((fs->target = strtok_r(NULL, delims, &ptr))) {
 		 fs->target = strdup(fs->target);
 		 rc++;
 
-		 if((fstype = strtok_r(NULL, delims, &p))) {
+		 if((fstype = strtok_r(NULL, delims, &ptr))) {
 		   fstype = strdup(fstype);
 		   rc++;
 
-		   if((optstr = strtok_r(NULL, delims, &p))) {
+		   if((optstr = strtok_r(NULL, delims, &ptr))) {
 			 optstr = strdup(optstr);
 			 rc++;
 
-			 if((nstr = strtok_r(NULL, delims, &p))) {
+			 if((nstr = strtok_r(NULL, delims, &ptr))) {
 			   n = atoi(nstr);
 			   rc++;
 			 }
@@ -96,6 +96,8 @@ static int mnt_parse_table_line(struct libmnt_fs *fs, char *s)
 		 }
 	   }
 	 }
+
+      n = ptr - s;
 
 #if 0
 	rc = sscanf(s,	UL_SCNsA" "	/* (1) source */
@@ -188,6 +190,7 @@ static int mnt_parse_mountinfo_line(struct libmnt_fs *fs, char *s)
 		 rc++;
 
 		 if((numstr2 = strchr(numstr, ':'))) {
+		   rc++;
 		   *numstr2++ = '\0';
 
 		   min = atoi(numstr2);
@@ -211,6 +214,8 @@ static int mnt_parse_mountinfo_line(struct libmnt_fs *fs, char *s)
 	   }
 	 }
    }
+
+   end = ptr - s;
    
 #if 0
 	rc = sscanf(s,	"%d "		/* (1) id */
