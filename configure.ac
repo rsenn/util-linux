@@ -142,6 +142,14 @@ AC_SUBST([BSD_WARN_CFLAGS])
 UL_WARN_ADD([-Wno-unused-parameter], [NO_UNUSED_WARN_CFLAGS])
 AC_SUBST([NO_UNUSED_WARN_CFLAGS])
 
+AC_ARG_ENABLE(debug, AC_HELP_STRING([--enable-debug],
+        [enable debugging (requires GNU compiler, default: no)]),
+        [
+CFLAGS="`echo $CFLAGS | sed 's|-O[0-9]\s||g ; s|\s-O[0-9]||g'`"
+CFLAGS="$CFLAGS -O0 -g3 -ggdb3 -DDEBUG"
+
+         ])
+
 
 AC_ARG_ENABLE([asan],
   AS_HELP_STRING([--enable-asan], [compile with Address Sanitizer]),
@@ -1062,7 +1070,7 @@ AC_ARG_ENABLE([libmount],
 )
 UL_BUILD_INIT([libmount])
 UL_REQUIRES_BUILD([libmount], [libblkid])
-UL_REQUIRES_HAVE([libmount], [scanf_alloc_modifier], [scanf string alloc modifier])
+dnl UL_REQUIRES_HAVE([libmount], [scanf_alloc_modifier], [scanf string alloc modifier])
 AM_CONDITIONAL([BUILD_LIBMOUNT], [test "x$build_libmount" = xyes])
 AM_CONDITIONAL([BUILD_LIBMOUNT_TESTS], [test "x$build_libmount" = xyes -a "x$enable_static" = xyes])
 AS_IF([test "x$build_libmount" = xyes], [
