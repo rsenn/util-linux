@@ -23,6 +23,8 @@
 #include "pathnames.h"
 #include "strutils.h"
 
+static const char delims[] = { ' ', '\t', '\0' };
+
 struct libmnt_parser {
 	FILE	*f;		/* fstab, mtab, swaps or mountinfo ... */
 	const char *filename;	/* file name or NULL */
@@ -66,9 +68,36 @@ static int next_number(char **s, int *num)
  */
 static int mnt_parse_table_line(struct libmnt_fs *fs, char *s)
 {
-	int rc, n = 0, xrc;
-	char *src = NULL, *fstype = NULL, *optstr = NULL;
+	 int rc = 0, n = 0, xrc;
 
+	 char *p = NULL, *src = NULL, *fstype = NULL, *optstr = NULL, *nstr = NULL;
+
+	 if((src = strtok_r(s, delims, &p))) {
+	   src = strdup(src);
+	   rc++;
+
+	   if((fs->target = strtok_r(NULL, delims, &p))) {
+		 fs->target = strdup(fs->target);
+		 rc++;
+
+		 if((fstype = strtok_r(NULL, delims, &p))) {
+		   fstype = strdup(fstype);
+		   rc++;
+
+		   if((optstr = strtok_r(NULL, delims, &p))) {
+			 optstr = strdup(optstr);
+			 rc++;
+
+			 if((nstr = strtok_r(NULL, delims, &p))) {
+			   n = atoi(nstr);
+			   rc++;
+			 }
+		   }
+		 }
+	   }
+	 }
+
+#if 0
 	rc = sscanf(s,	UL_SCNsA" "	/* (1) source */
 			UL_SCNsA" "	/* (2) target */
 			UL_SCNsA" "	/* (3) FS type */
@@ -80,6 +109,7 @@ static int mnt_parse_table_line(struct libmnt_fs *fs, char *s)
 			&fstype,
 			&optstr,
 			&n);
+#endif
 	xrc = rc;
 
 	if (rc == 3 || rc == 4) {			/* options are optional */
@@ -140,10 +170,49 @@ static int mnt_parse_table_line(struct libmnt_fs *fs, char *s)
  */
 static int mnt_parse_mountinfo_line(struct libmnt_fs *fs, char *s)
 {
-	int rc, end = 0;
-	unsigned int maj, min;
-	char *fstype = NULL, *src = NULL, *p;
 
+   int rc = 0, end = 0;
+   unsigned int maj, min;
+   char *ptr = NULL, *numstr = NULL,  *fstype = NULL, *src = NULL, *p;
+
+   if((numstr = strtok_r(s, delims, &ptr))) {
+	 rc++;
+	 fs->id = atoi(numstr);
+
+	 if((numstr = strtok_r(NULL, delims, &ptr))) {
+	   rc++;
+	   fs->parent = atoi(numstr);
+
+	   if((numstr = strtok_r(NULL, delims, &ptr))) {
+		 char *numstr2;
+		 rc++;
+
+		 if((numstr2 = strchr(numstr, ':'))) {
+		   *numstr2++ = '\0';
+
+		   min = atoi(numstr2);
+		 }
+		 maj = atoi(numstr);
+
+		 if((fs->root = strtok_r(NULL, delims, &ptr))) {
+		   rc++;
+		   fs->root = strdup(fs->root);
+		 
+		   if((fs->target = strtok_r(NULL, delims, &ptr))) {
+			 rc++;
+			 fs->target = strdup(fs->target);
+		 
+			 if((fs->vfs_optstr = strtok_r(NULL, delims, &ptr))) {
+			   rc++;
+			   fs->vfs_optstr = strdup(fs->vfs_optstr);
+			 }
+		   }
+		 }
+	   }
+	 }
+   }
+   
+#if 0
 	rc = sscanf(s,	"%d "		/* (1) id */
 			"%d "		/* (2) parent */
 			"%u:%u "	/* (3) maj:min */
@@ -159,7 +228,7 @@ static int mnt_parse_mountinfo_line(struct libmnt_fs *fs, char *s)
 			&fs->target,
 			&fs->vfs_optstr,
 			&end);
-
+#endif
 	if (rc >= 7 && end > 0)
 		s += end;
 
@@ -173,6 +242,22 @@ static int mnt_parse_mountinfo_line(struct libmnt_fs *fs, char *s)
 		fs->opt_fields = strndup(s + 1, p - s - 1);
 	s = p + 3;
 
+   if((fstype = strtok_r(NULL, delims, &ptr))) {
+	 rc++;
+	 fstype = strdup(fstype);
+
+	 if((src = strtok_r(NULL, delims, &ptr))) {
+	   rc++;
+	   src = strdup(src);
+
+	   if((fs->fs_optstr = strtok_r(NULL, delims, &ptr))) {
+		 rc++;
+		 fs->fs_optstr = strdup(fs->fs_optstr);
+	   }
+	 }
+   }
+
+#if 0
 	rc += sscanf(s,	UL_SCNsA" "	/* (8) FS type */
 			UL_SCNsA" "	/* (9) source */
 			UL_SCNsA,	/* (10) fs options (fs specific) */
@@ -180,6 +265,7 @@ static int mnt_parse_mountinfo_line(struct libmnt_fs *fs, char *s)
 			&fstype,
 			&src,
 			&fs->fs_optstr);
+#endif
 
 	if (rc >= 10) {
 		size_t sz;
@@ -295,9 +381,35 @@ enomem:
 static int mnt_parse_swaps_line(struct libmnt_fs *fs, char *s)
 {
 	uintmax_t fsz, usz;
-	int rc;
-	char *src = NULL;
+	int rc = 0;
+   char *ptr, *numstr = NULL, *src = NULL;
+   
+   if((src = strtok_r(s, delims, &ptr))) {
+	 src = strdup(src);
+	 rc++;
 
+	 if((fs->swaptype = strtok_r(NULL, delims, &ptr))) {
+	   fs->swaptype = strdup(fs->swaptype);
+	   rc++;
+
+	   if((numstr = strtok_r(NULL, delims, &ptr))) {
+		 fsz = atoi(numstr);
+		 rc++;
+   
+		 if((numstr = strtok_r(NULL, delims, &ptr))) {
+		   usz = atoi(numstr);
+		   rc++;
+
+		   if((numstr = strtok_r(NULL, delims, &ptr))) {
+			 fs->priority = atoi(numstr);
+			 rc++;
+		   }
+		 }
+	   }
+	 }
+   }
+   
+#if 0
 	rc = sscanf(s,	UL_SCNsA" "	/* (1) source */
 			UL_SCNsA" "	/* (2) type */
 			"%ju"		/* (3) size */
@@ -309,7 +421,7 @@ static int mnt_parse_swaps_line(struct libmnt_fs *fs, char *s)
 			&fsz,
 			&usz,
 			&fs->priority);
-
+#endif
 	if (rc == 5) {
 		size_t sz;
 
