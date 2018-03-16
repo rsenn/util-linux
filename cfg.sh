@@ -47,7 +47,7 @@ dietcfg() {
     export PKG_CONFIG_PATH=/opt/diet/lib-$cpu/pkgconfig
     libdir="$prefix/lib-$cpu"
 
-    CC="/opt/diet/bin-$cpu/diet -Os ${CC:-gcc} -D_BSD_SOURCE=1 -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 -D_SC_HOST_NAME_MAX=180" \
+    CC="/opt/diet/bin-$cpu/diet -Os ${CC:-gcc} -D_BSD_SOURCE=1 -D_ATFILE_SOURCE=1 -D_SC_HOST_NAME_MAX=180" \
     cfg \
       ${libdir+--libdir=$libdir} \
      --bindir=$prefix/bin-$cpu \

@@ -23,6 +23,8 @@
 #include "pathnames.h"
 #include "strutils.h"
 
+extern int versionsort(const struct dirent **a, const struct dirent **b);
+
 static const char delims[] = { ' ', '\t', '\0' };
 
 struct libmnt_parser {
