@@ -1,83 +1,95 @@
-defaultcfg() {
-  (set -x;   cfg --enable-debug --enable-libmount   --disable-{shared,nls,rpath,assert}   --without-python  --disable-pylibmount)
+cfg() {
+ (: ${build:=`gcc -dumpmachine`}
+  : ${host:=$build}
+  : ${prefix:=/usr${host:+/$host}}
+
+  CROSS_COMPILE=${host:+$host-}
+
+  : ${builddir:=build/${host:-$build}}
+
+  mkdir -p $builddir 
+  relsrcdir=`realpath --relative-to="$builddir" "$(pwd)"`
+
+  set -x;
+  cd $builddir
+
+  "$relsrcdir"/configure \
+      --prefix="$prefix" \
+      ${bindir:+--bindir="$bindir"} \
+      ${libdir:+--libdir="$libdir"} \
+      --disable-{maintainer-mode,silent-rules,libtool-lock} \
+      ${build:+--build="$build"} \
+      ${host:+--host="$host"} \
+      ${target:+--target="$target"} \
+      --disable-{nls,rpath,assert} \
+      --enable-libmount \
+    "$@")
 }
 
-cfg () 
-{ 
-    IFS="
- $IFS"
-    : ${build=$(${CC-gcc} -dumpmachine | sed "s/-pc-/-/ ;; s/linux/pc-&/")}
-    : ${host=$build}
-    : ${builddir=build/$build}
-    : ${prefix=/usr}
+android-cfg() {
+  host="arm-linux-androideabi"
+  build="$(gcc -dumpmachine)"
+  prefix="/opt/$host/sysroot/usr"
+  builddir="build/android"
 
-     #export PKG_CONFIG_PATH="$prefix/lib/pkgconfig:$prefix/share/pkgconfig"
-     export LIBS="-ldl"
-
-    mkdir -p $builddir;
-    #relsrcdir=$(realpath --relative-to="$builddir" $PWD)
-    relsrcdir=../..
-    ( set -x; cd $builddir;
-    "$relsrcdir"/configure \
-          --prefix=$prefix \
-          --disable-{silent-rules,dependency-tracking,libtool-lock} \
-           --enable-libmount \
-          "$@"
-    )
-
+  PKG_CONFIG_PATH="$prefix/lib/pkgconfig:$prefix/share/pkgconfig:$prefix/lib/pkgconfig" \
+  PKG_CONFIG_LIBDIR="$prefix/lib/pkgconfig" \
+  PKG_CONFIG="$host-pkg-config" \
+  CC="$host-gcc --sysroot=/opt/$host/sysroot" \
+  CXX="$host-g++ --sysroot=/opt/$host/sysroot" \
+  CFLAGS="-fPIE" CPPFLAGS="-fPIE" CXXFLAGS="-fPIE" LDFLAGS="-pie"  \
+  CPPFLAGS="-D__ANDROID_API__=24 -I$prefix/include -I/system/include" \
+  cfg \
+    "$@"
 }
 
+termux-cfg() {
+  host="arm-linux-androideabi"
+  build="$(gcc -dumpmachine)"
+  prefix="/data/data/com.termux/files/usr"
+  builddir="build/termux"
 
-dietcfg() {
-    IFS="
- $IFS"
-    build=$(${CC-gcc} -dumpmachine | sed "s/-pc-/-/ ;; s/linux/pc-&/")
-    cfg32
-   
-    
-    host=${build//-pc-/-}; host=${host#*-}; host=$a-${host//-gnu*/-dietlibc}
-    builddir=build/$host
-
-    case "$host" in 
-        *-diet*) prefix=/opt/diet ;;
-        *) prefix=/usr ;;
-    esac
-
-    export LIBS="-lcompat -lpthread"
-    export PKG_CONFIG_PATH=/opt/diet/lib-$cpu/pkgconfig
-    libdir="$prefix/lib-$cpu"
-
-    CC="/opt/diet/bin-$cpu/diet -Os ${CC:-gcc} -D_BSD_SOURCE=1 -D_ATFILE_SOURCE=1 -D_SC_HOST_NAME_MAX=180" \
-    cfg \
-      ${libdir+--libdir=$libdir} \
-     --bindir=$prefix/bin-$cpu \
-      --disable-shared \
-      --enable-static \
-      "$@"
+  PKG_CONFIG_PATH="$prefix/lib/pkgconfig:$prefix/share/pkgconfig:/opt/$host/sysroot/usr/lib/pkgconfig" \
+  PKG_CONFIG_LIBDIR="$prefix/lib/pkgconfig" \
+  PKG_CONFIG="$host-pkg-config" \
+  CC="$host-gcc --sysroot=/data/data/com.termux/files" \
+  CXX="$host-g++ --sysroot=/data/data/com.termux/files" \
+  CFLAGS="-fPIE" CPPFLAGS="-fPIE" CXXFLAGS="-fPIE" LDFLAGS="-pie"  \
+  CPPFLAGS="-D__ANDROID_API__=24 -I$prefix/include -I/data/data/com.termux/files/system/include" \
+  cfg \
+    "$@"
 }
 
+diet-cfg() {
+ (build=$(${CC:-gcc} -dumpmachine)
+  host=${build/-gnu/-dietlibc}
+  prefix=/opt/diet
+  libdir=/opt/diet/lib-${host%%-*}
+  bindir=/opt/diet/bin-${host%%-*}
 
-cfg32() {
-  case "$CC $*" in
-      *-m32*) host=i686-${host#*-} cpu=x86_64 ;;
-      *i[3-6]86*) host=i686-${host#*-} cpu=i386 ;;
-  esac
-  case "$host" in
-    i?86*) a=i686 cpu=i386 m="-m32" l="32" ;;
-    *) a=x86_64 cpu=x86_64 m="-m64" l="" ;;
-  esac
+  CC="diet-gcc" \
+  CPPFLAGS="-D_{BSD,XOPEN,POSIX,GNU,ATFILE}_SOURCE=1" \
+  PKG_CONFIG="$host-pkg-config" \
+  cfg \
+    --disable-shared \
+    --enable-static \
+    "$@")
 }
 
+musl-cfg() {
+ (build=$(${CC:-gcc} -dumpmachine)
+  host=${build/-gnu/-musl}
+  host=${host/-pc-/-}
+  builddir=build/$host
+  prefix=/usr
+  includedir=/usr/include/$host
+  libdir=/usr/lib/$host
+  bindir=/usr/bin/$host
 
-cfg32() {
-  case "$CC $*" in
-      *-m32*) host=i686-${host#*-} cpu=x86_64 ;;
-      *i[3-6]86*) host=i686-${host#*-} cpu=i386 ;;
-      *) host=$(${CC-gcc} -dumpmachine); cpu=${host%%-*} ;;
-  esac
-  case "$host" in
-    i?86*) a=i686 cpu=i386 m="-m32" l="32" ;;
-    *) a=x86_64 cpu=x86_64 m="-m64" l="" ;;
-  esac
+  CC="musl-gcc" \
+  PKG_CONFIG="musl-pkg-config" \
+  cfg \
+    --disable-shared \
+    --enable-static \
+    "$@")
 }
-

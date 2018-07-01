@@ -115,8 +115,8 @@ void cpuset_free(cpu_set_t *set)
 int __cpuset_count_s(size_t setsize, const cpu_set_t *set)
 {
 	int s = 0;
-	const __cpu_mask *p = set->__bits;
-	const __cpu_mask *end = &set->__bits[setsize / sizeof (__cpu_mask)];
+	const __cpu_mask *p = ((__cpu_set_t*)set)->__bits;
+	const __cpu_mask *end = &((__cpu_set_t*)set)->__bits[setsize / sizeof (__cpu_mask)];
 
 	while (p < end) {
 		__cpu_mask l = *p++;

@@ -271,6 +271,10 @@ static inline int dirfd(DIR *d)
 #define IUTF8 0040000
 #endif
 
+#ifndef _SC_HOST_NAME_MAX
+#define _SC_HOST_NAME_MAX 180
+#endif
+
 /*
  * MAXHOSTNAMELEN replacement
  */

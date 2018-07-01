@@ -6,6 +6,7 @@
 #define UTIL_LINUX_CPUSET_H
 
 #include <sched.h>
+#include <bits/cpu-set.h>
 
 /*
  * Fallback for old or obscure libcs without dynamically allocated cpusets
@@ -23,7 +24,7 @@
   do {									      \
     size_t __i;								      \
     size_t __imax = (setsize) / sizeof (__cpu_mask);			      \
-    __cpu_mask *__bits = (cpusetp)->__bits;				      \
+    __cpu_mask *__bits = ((__cpu_set_t*)(cpusetp))->__bits;				      \
     for (__i = 0; __i < __imax; ++__i)					      \
       __bits[__i] = 0;							      \
   } while (0)
@@ -31,14 +32,14 @@
 # define CPU_SET_S(cpu, setsize, cpusetp) \
    ({ size_t __cpu = (cpu);						      \
       __cpu < 8 * (setsize)						      \
-      ? (((__cpu_mask *) ((cpusetp)->__bits))[__CPUELT (__cpu)]		      \
+      ? (((__cpu_mask *) (((__cpu_set_t*)cpusetp)->__bits))[__CPUELT (__cpu)]		      \
 	 |= __CPUMASK (__cpu))						      \
       : 0; })
 
 # define CPU_ISSET_S(cpu, setsize, cpusetp) \
    ({ size_t __cpu = (cpu);						      \
       __cpu < 8 * (setsize)						      \
-      ? ((((__cpu_mask *) ((cpusetp)->__bits))[__CPUELT (__cpu)]	      \
+      ? ((((__cpu_mask *) (((__cpu_set_t*)cpusetp)->__bits))[__CPUELT (__cpu)]	      \
 	  & __CPUMASK (__cpu))) != 0					      \
       : 0; })
 
